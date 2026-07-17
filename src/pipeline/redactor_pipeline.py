@@ -74,9 +74,11 @@ class RedactionPipeline:
         input_path: Union[str, Path],
         output_path: Union[str, Path],
         create_backup: bool = False,
+        placeholder_image_path: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """
         Executes end-to-end PII redaction on a single `.docx` file.
+        Includes options to filter out textual identifiers and overwrite internal media streams.
         
         Returns:
             Dictionary containing audit summary metrics (replacements, counts by PII type, etc.).
@@ -92,11 +94,13 @@ class RedactionPipeline:
         processor = DocxProcessor()
         processor.load(inp)
 
+        # FIX: Added `placeholder_image_path` variable forwarding to handle visual assets dynamically
         process_metrics = processor.process_and_redact(
             analyzer_engine=self.analyzer,
             anonymizer_engine=self.anonymizer,
             operators=self.operators,
             score_threshold=self.score_threshold,
+            placeholder_image_path=placeholder_image_path,
         )
 
         processor.save(out)
@@ -107,12 +111,14 @@ class RedactionPipeline:
             "output_file": str(out),
             "paragraphs_processed": process_metrics.get("paragraphs_processed", 0),
             "total_replacements": process_metrics.get("total_replacements", 0),
+            "images_redacted": process_metrics.get("images_redacted", 0),  # FIX: Extracted image metrics
             "entity_counts": self.entity_store.get_metrics(),
             "unique_entities_mapped": self.entity_store.get_unique_counts(),
         }
 
         logger.info(
-            f"Successfully redacted '{inp.name}'. Summary metrics: {summary['entity_counts']}"
+            f"Successfully redacted '{inp.name}'. Summary metrics: {summary['entity_counts']}. "
+            f"Images Redacted: {summary['images_redacted']}"
         )
         return summary
 

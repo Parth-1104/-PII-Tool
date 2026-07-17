@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Union, Dict, Any, List, Optional
 import docx
@@ -17,6 +18,7 @@ class DocxProcessor(BaseDocumentProcessor):
     
     Coordinates with Presidio Analyzer and Anonymizer to detect and replace PII
     while preserving exact paragraph styling and XML structural attributes.
+    Includes a binary media bounding layer to redact embedded visual graphics.
     """
 
     def __init__(self):
@@ -41,10 +43,11 @@ class DocxProcessor(BaseDocumentProcessor):
         anonymizer_engine: Any,
         operators: Dict[str, Any],
         score_threshold: float = 0.65,
+        placeholder_image_path: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """
         Traverses all text structures inside the loaded DOCX document, executes PII analysis,
-        and applies synthetic replacements via TextRunWalker.
+        applies synthetic replacements via TextRunWalker, and handles image asset sanitization.
         """
         if not self.doc:
             raise RuntimeError("No document loaded. Call load() before process_and_redact().")
@@ -94,11 +97,53 @@ class DocxProcessor(BaseDocumentProcessor):
                         f_table, analyzer_engine, anonymizer_engine, operators, score_threshold
                     )
 
+        # 4. Upper Edge Feature: Binary Visual Compliance Engine
+        images_redacted = 0
+        if placeholder_image_path:
+            logger.info("Executing binary media bounding layer on embedded graphics...")
+            images_redacted = self._redact_embedded_images(placeholder_image_path)
+
         logger.info(
             f"Redaction completed across {paragraphs_processed} body paragraphs. "
-            f"Total PII replacements applied: {total_replacements}"
+            f"Total PII text replacements applied: {total_replacements}. "
+            f"Total visual assets redacted: {images_redacted}."
         )
-        return {"total_replacements": total_replacements, "paragraphs_processed": paragraphs_processed}
+        return {
+            "total_replacements": total_replacements, 
+            "paragraphs_processed": paragraphs_processed,
+            "images_redacted": images_redacted
+        }
+
+    def _redact_embedded_images(self, placeholder_image_path: Union[str, Path]) -> int:
+        """
+        Traverses open-xml relationship definitions to find embedded images
+        and systematically swaps their binary data blocks with a generic placeholder.
+        """
+        img_path = Path(placeholder_image_path)
+        if not img_path.is_file():
+            logger.error(f"Image placeholder file not found at: {img_path}. Skipping visual redaction.")
+            return 0
+
+        replaced_count = 0
+        try:
+            with open(img_path, "rb") as f:
+                placeholder_bytes = f.read()
+        except Exception as e:
+            logger.error(f"Failed to read image placeholder binary data: {e}")
+            return 0
+
+        # Access low-level Open-XML document part relationships directly
+        for rel_id, rel in self.doc.part.rels.items():
+            if "image" in rel.target_ref:
+                try:
+                    # Overwrite the binary data block stream inside the open-xml package
+                    rel.target_part._blob = placeholder_bytes
+                    replaced_count += 1
+                except Exception as ex:
+                    logger.warning(f"Could not overwrite media relationship stream {rel_id}: {ex}")
+                    continue
+        
+        return replaced_count
 
     def _process_table(
         self,
@@ -147,7 +192,6 @@ class DocxProcessor(BaseDocumentProcessor):
         if not analyzer_results:
             return 0
 
-        # Ensure every single result is converted to a proper RecognizerResult before passing forward
         from presidio_analyzer import RecognizerResult, EntityRecognizer, AnalysisExplanation
         from src.utils.stop_words import TARGET_PII_ENTITIES, should_ignore_candidate
 
@@ -160,7 +204,6 @@ class DocxProcessor(BaseDocumentProcessor):
             elif etype in ("GPE", "ADDRESS"):
                 etype = "LOCATION"
 
-            # 1. Strictly filter for target PII entities only
             if etype not in TARGET_PII_ENTITIES and etype != "DEFAULT":
                 continue
 
@@ -172,7 +215,6 @@ class DocxProcessor(BaseDocumentProcessor):
                 continue
 
             span_text = full_text[int(st) : int(en)]
-            # 2. Check against common English vocabulary & stop-words
             if should_ignore_candidate(etype, span_text):
                 continue
 
@@ -204,19 +246,14 @@ class DocxProcessor(BaseDocumentProcessor):
         if not clean_filtered:
             return 0
 
-        # Remove overlapping spans from analyzer results (keep highest confidence/longest)
         filtered_results = EntityRecognizer.remove_duplicates(clean_filtered)
 
-        # Run Presidio Anonymizer with custom Faker operators
-        # This triggers StatefulFakerOperator for each span and updates our mapping vault
         _ = anonymizer_engine.anonymize(
             text=full_text,
             analyzer_results=filtered_results,
             operators=operators,
         )
 
-        # Extract the exact replacement for each span from our custom operators / store
-        # To get the synthetic value safely, we inspect the operator configuration callback
         replacements = []
         for res in filtered_results:
             original_substring = full_text[res.start : res.end]
@@ -231,7 +268,6 @@ class DocxProcessor(BaseDocumentProcessor):
 
             replacements.append((res.start, res.end, synthetic_text))
 
-        # Project replacements onto the paragraph runs safely
         return TextRunWalker.apply_replacements(paragraph, replacements)
 
     def save(self, output_path: Union[str, Path]) -> None:
