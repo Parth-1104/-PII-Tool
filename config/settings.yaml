@@ -1,0 +1,72 @@
+# PII Redaction Engine Configuration
+nlp:
+  spacy_model: "en_core_web_lg"
+  fallback_spacy_model: "en_core_web_sm"
+
+redaction:
+  default_score_threshold: 0.65
+  enable_persistence: false
+  persistence_vault_path: "./entity_vault.json"
+
+entities:
+  - name: "PERSON"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "name"
+  - name: "EMAIL_ADDRESS"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "email"
+  - name: "PHONE_NUMBER"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "phone_number"
+  - name: "COMPANY_NAME"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "company"
+  - name: "LOCATION"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "address"
+  - name: "US_SSN"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "ssn"
+  - name: "CREDIT_CARD"
+    enabled: true
+    score_threshold: 0.70
+    faker_provider: "credit_card_number"
+  - name: "DATE_TIME"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "date_of_birth"
+  - name: "IP_ADDRESS"
+    enabled: true
+    score_threshold: 0.65
+    faker_provider: "ipv4"
+
+custom_recognizers:
+  company:
+    enabled: true
+    keywords:
+      - "Inc."
+      - "LLC"
+      - "Corp"
+      - "Corporation"
+      - "Company"
+      - "GmbH"
+      - "Ltd"
+      - "Limited"
+      - "Technologies"
+      - "Labs"
+      - "Solutions"
+      - "Consulting"
+      - "Enterprises"
+      - "Group"
+      - "Partners"
+  ssn:
+    enabled: true
+    validate_strict: true
+  dob:
+    enabled: true
