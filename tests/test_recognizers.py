@@ -56,3 +56,26 @@ def test_analyzer_factory_singleton():
     engine2 = AnalyzerFactory.get_engine()
     assert engine1 is engine2
     assert any("CompanyNameRecognizer" in r.name for r in engine1.registry.recognizers)
+
+
+
+def test_custom_credit_card_recognizer_direct():
+    """
+    Explicit original architectural verification to ensure the custom
+    English credit card pattern yields high-priority confidence matches.
+    """
+    from src.recognizers.analyzer_factory import AnalyzerFactory
+    
+    # Force load factory engine instance
+    engine = AnalyzerFactory.get_engine(force_reload=True)
+    
+    # Test vector containing a mock credit card structure
+    test_sample = "Transactional context visa verification pattern: 4111-2222-3333-4444"
+    
+    analysis_results = engine.analyze(text=test_sample, language="en")
+    
+    # Confirm that CREDIT_CARD entities are captured successfully
+    cc_hits = [res for res in analysis_results if res.entity_type == "CREDIT_CARD"]
+    
+    assert len(cc_hits) > 0, "Custom credit card pattern failed to trace target entity."
+    assert cc_hits[0].score == 1.0, "Recognizer logic missing high-priority confidence thresholding."
