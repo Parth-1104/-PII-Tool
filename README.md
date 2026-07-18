@@ -36,20 +36,19 @@ Performance was thoroughly calculated using a strict human-in-the-loop cross-val
 * **Embedded Visual Assets Redacted:** 8 / 8 Images (Visual Compliance Engine Overrides)
 
 ### 2. Quantitative Performance Ledger
-* **System Recall (Target Catch Rate):** **98.2%**
-  $$\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}$$
-  *Insight:* Combining Microsoft Presidio with spaCy’s dense transformer model achieved near-perfect extraction on organic names, dates, and locations. Injecting our custom regular expression recognizer class completely eliminated structural tracking gaps for numerical transaction items.
-  
-* **System Precision (False Alarm Mitigation):** **91.5%**
-  $$\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}$$
-  *Insight:* Maintained high contextual isolation across complex multi-column tables. Non-sensitive document index labels and standalone order codes were explicitly skipped by design to maximize structural readability.
-  
-* **Calculated Pipeline F1-Score:** **94.7%**
-  $$\text{F1} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+
+Performance vectors were validated against a baseline manual ground-truth annotation set derived from the target prospectus zones.
+
+| Metric | Score | Mathematical Derivation | Key Architectural Vector |
+| :--- | :--- | :--- | :--- |
+| **System Recall** | **98.2%** | $$\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}$$ | High-priority deterministic pattern matchers + spaCy transformer core ensuring zero-leak tracking on names and locations. |
+| **System Precision** | **91.5%** | $$\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}$$ | Native contextual isolation logic preventing over-redaction of non-PII index variables and transactional indicators. |
+| **Pipeline F1-Score** | **94.7%** | $$\text{F1} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$ | Harmonic mean validating comprehensive performance stability across structural tables and multi-line runs. |
+| **Overall Accuracy** | **93.8%** | $$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$ | General system reliability across all parsed token spaces within the baseline document container. |
 
 * **Overall Engine Classification Accuracy:** **93.8%** *(Reflecting total correctly classified boundaries relative to all evaluated token spans across the baseline prospectus evaluation zone).*
 
-### 3. Entity Classification Ledger
+### 3. Entity Classification Ledger On Provided Assignment
 | PII Entity Classification | Evaluated Replacement Count |
 | :--- | :--- |
 | **`COMPANY_NAME`** | 3,823 |
@@ -62,16 +61,7 @@ Performance was thoroughly calculated using a strict human-in-the-loop cross-val
 
 ---
 
-### 2. Quantitative Performance Ledger
 
-Performance vectors were validated against a baseline manual ground-truth annotation set derived from the target prospectus zones.
-
-| Metric | Score | Mathematical Derivation | Key Architectural Vector |
-| :--- | :--- | :--- | :--- |
-| **System Recall** | **98.2%** | $$\text{Recall} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}}$$ | High-priority deterministic pattern matchers + spaCy transformer core ensuring zero-leak tracking on names and locations. |
-| **System Precision** | **91.5%** | $$\text{Precision} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Positives}}$$ | Native contextual isolation logic preventing over-redaction of non-PII index variables and transactional indicators. |
-| **Pipeline F1-Score** | **94.7%** | $$\text{F1} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$ | Harmonic mean validating comprehensive performance stability across structural tables and multi-line runs. |
-| **Overall Accuracy** | **93.8%** | $$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$ | General system reliability across all parsed token spaces within the baseline document container. |
 
 ## 📈 Engineering Trade-Offs & Edge Cases
 
